@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Chuyển đổi đơn vị mm/inch</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <div class="panel">
+      <h2>Nhập dữ liệu</h2>
+      <form method="POST">
+        <label>Chế độ:</label>
+        <select name="mode" id="mode" onchange="switchMode()">
+          <option value="symmetric" {% if result.mode == 'symmetric' %}selected{% endif %}>± Đối xứng</option>
+          <option value="asymmetric" {% if result.mode == 'asymmetric' %}selected{% endif %}>+/- Không đối xứng</option>
+        </select>
+
+        <label>Danh nghĩa:</label>
+        <input type="number" name="nominal" step="any" value="{{ result.nominal|default('') }}" required>
+
+        <div id="sym-area" style="display:none;">
+          <label>Dung sai (±):</label>
+          <input type="number" name="tolerance" step="any" value="{{ result.tolerance|default('') }}">
+        </div>
+
+        <div id="asym-area" style="display:none;">
+          <label>Dung sai (+):</label>
+          <input type="number" name="tol_plus" step="any" value="{{ result.tol_plus|default('') }}">
+          <label>Dung sai (-):</label>
+          <input type="number" name="tol_minus" step="any" value="{{ result.tol_minus|default('') }}">
+        </div>
+
+        <label>Đơn vị:</label>
+        <select name="unit">
+          <option value="mm" {% if result.unit == 'mm' %}selected{% endif %}>mm</option>
+          <option value="inch" {% if result.unit == 'inch' %}selected{% endif %}>inch</option>
+        </select>
+
+        <label>Số chữ số thập phân:</label>
+        <select name="decimals">
+          {% for i in range(1, 12) %}
+            <option value="{{ i }}" {% if result.decimals == i %}selected{% endif %}>{{ '.' + '0'*i }}</option>
+          {% endfor %}
+        </select>
+
+        <hr>
+        <h4>Đối chiếu tay (đơn vị {{ result.target_unit|default('inch') }})</h4>
+        <label>Danh nghĩa:</label>
+        <input type="number" name="verify_nominal" step="any" value="{{ result.verify_nominal|default('') }}">
+        <label>Dung sai:</label>
+        <input type="number" name="verify_tolerance" step="any" value="{{ result.verify_tolerance|default('') }}">
+
+        <button type="submit">Tính</button>
+      </form>
+    </div>
+
+    <div class="panel result">
+      <h2>Kết quả</h2>
+      {% if result.error %}
+        <p class="error">{{ result.error }}</p>
+      {% elif result.nominal is defined %}
+        <p><b>Đơn vị gốc:</b> {{ result.unit }}</p>
+        <p>Danh nghĩa: {{ result.nominal }}</p>
+        {% if result.mode == 'symmetric' %}
+          <p>Dung sai: ±{{ result.tolerance }}</p>
+        {% else %}
+          <p>Dung sai: +{{ result.tol_plus }} / -{{ result.tol_minus }}</p>
+        {% endif %}
+        <p>Min: {{ result.min_val }}</p>
+        <p>Max: {{ result.max_val }}</p>
+        <hr>
+        <p><b>Quy đổi sang {{ result.target_unit }}</b></p>
+        <p>Danh nghĩa: {{ result.nominal_converted }}</p>
+        <p>Dung sai: ±{{ result.symmetric_tolerance }}</p>
+        <p>Min: {{ result.min_converted }}</p>
+        <p>Max: {{ result.max_converted }}</p>
+        {% if result.verify_nominal is defined %}
+          <hr>
+          <p><b>Đối chiếu về đơn vị {{ result.unit }}</b></p>
+          <p>Min: <span style="color: {% if result.verify_min_converted < result.min_val %}red{% else %}green{% endif %}">{{ result.verify_min_converted }}</span></p>
+          <p>Max: <span style="color: {% if result.verify_max_converted > result.max_val %}red{% else %}green{% endif %}">{{ result.verify_max_converted }}</span></p>
+          <p style="color: {{ result.verification_color }}">{{ result.verification_result }}</p>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    function switchMode() {
+      let mode = document.getElementById("mode").value;
+      document.getElementById("sym-area").style.display = mode === "symmetric" ? "block" : "none";
+      document.getElementById("asym-area").style.display = mode === "asymmetric" ? "block" : "none";
+    }
+    window.onload = switchMode;
+  </script>
+</body>
+</html>
